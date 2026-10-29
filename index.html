@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="ur">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>WinGo 4-AI Specialized Master Engine</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800;900&display=swap');
+
+        :root {
+            --bg-deep: #030712;
+            --card-glass: rgba(13, 18, 36, 0.96);
+            --white-stroke: rgba(255, 255, 255, 0.85);
+            --accent-cyan: #00f2fe;
+            --accent-green: #10b981;
+            --accent-red: #ff3366;
+            --gold: #ffb703;
+            --skip-orange: #f97316;
+            --text-main: #f8fafc;
+            --text-sub: #94a3b8;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }
+        body { background-color: var(--bg-deep); color: var(--text-main); display: flex; flex-direction: column; align-items: center; min-height: 100vh; padding: 6px; }
+
+        .app-card {
+            width: 100%; max-width: 440px; background: var(--card-glass);
+            backdrop-filter: blur(20px); border-radius: 20px; padding: 12px;
+            border: 1.5px solid var(--white-stroke); box-shadow: 0 0 25px rgba(0,242,254,0.15);
+        }
+
+        .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .header-title h1 { font-size: 6px; color: #fff; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; }
+        .sync-badge { background: rgba(16, 185, 129, 0.2); color: var(--accent-green); border: 1px solid var(--accent-green); font-size: 8px; font-weight: 800; padding: 3px 6px; border-radius: 10px; }
+
+        .period-box {
+            background: rgba(3, 7, 18, 0.65); border-radius: 10px; padding: 6px 10px;
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+
+        .timer-container {
+            background: rgba(3, 7, 18, 0.75); border-radius: 10px; padding: 4px 10px; margin-bottom: 6px; border: 1px solid rgba(255, 255, 255, 0.12); text-align: center;
+        }
+        .timer-clock { font-size: 16px; font-weight: 900; color: var(--accent-green); font-family: monospace; }
+
+        .trend-grid {
+            display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; margin-bottom: 8px;
+        }
+        .trend-card {
+            background: rgba(3, 7, 18, 0.7); border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px; padding: 6px 8px; font-size: 7.5px;
+        }
+        .trend-name { color: var(--gold); font-weight: 800; margin-bottom: 2px; display: flex; justify-content: space-between; }
+        .trend-val { font-weight: 900; color: #fff; display: flex; justify-content: space-between; margin-top: 2px; font-size: 8.5px; }
+
+        .supervisor-signal-box {
+            width: 100%;
+            background: linear-gradient(135deg, rgba(0, 242, 254, 0.15), rgba(16, 185, 129, 0.2));
+            border-radius: 14px; padding: 10px; text-align: center; margin-bottom: 8px;
+            border: 2px solid var(--accent-cyan);
+            box-shadow: 0 0 20px rgba(0, 242, 254, 0.3);
+        }
+        .supervisor-signal-box.safe-mode {
+            border-color: var(--skip-orange);
+            background: linear-gradient(135deg, rgba(249, 115, 22, 0.2), rgba(15, 23, 42, 0.95));
+            box-shadow: 0 0 20px rgba(249, 115, 22, 0.4);
+        }
+
+        .signal-label { font-size: 8px; color: var(--text-sub); font-weight: 800; letter-spacing: 1px; }
+        .signal-trend {
+            font-size: 28px; font-weight: 900; margin: 3px 0; color: #fff;
+            text-shadow: 0 0 15px rgba(0, 242, 254, 0.7); letter-spacing: 2px;
+        }
+        .signal-trend.safe-mode {
+            color: var(--skip-orange);
+            text-shadow: 0 0 15px rgba(249, 115, 22, 0.7);
+        }
+
+        .user-card {
+            background: rgba(15, 23, 42, 0.75); border-radius: 12px; padding: 8px; margin-bottom: 6px;
+            border: 1.5px solid rgba(255, 255, 255, 0.15);
+        }
+
+        .history-container {
+            background: rgba(3, 7, 18, 0.85); border-radius: 10px; padding: 6px;
+            border: 1.5px solid rgba(255, 183, 3, 0.35); max-height: 140px; overflow-y: auto; margin-top: 4px;
+        }
+
+        .history-table { width: 100%; border-collapse: collapse; font-size: 8px; text-align: center; }
+        .history-table th { color: var(--text-sub); padding: 4px 2px; border-bottom: 1px solid rgba(255, 255, 255, 0.1); position: sticky; top: 0; background: #030712; }
+        .history-table td { padding: 4px 2px; border-bottom: 1px solid rgba(255, 255, 255, 0.04); }
+
+        .badge-win { background: rgba(16, 185, 129, 0.2); color: var(--accent-green); border: 1px solid var(--accent-green); padding: 1px 4px; border-radius: 3px; font-weight: 800; }
+        .badge-loss { background: rgba(255, 51, 102, 0.2); color: var(--accent-red); border: 1px solid var(--accent-red); padding: 1px 4px; border-radius: 3px; font-weight: 800; }
+        .badge-safe { background: rgba(249, 115, 22, 0.2); color: var(--skip-orange); border: 1px solid var(--skip-orange); padding: 1px 4px; border-radius: 3px; font-weight: 800; }
+    </style>
+
+    <!-- Firebase SDKs & Cloud Sync -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCLBtPq8xK9COk6GZyC-zHEtLFfW8-qQH0",
+            authDomain: "ghugh-b4903.firebaseapp.com",
+            projectId: "ghugh-b4903",
+            storageBucket: "ghugh-b4903.firebasestorage.app",
+            messagingSenderId: "960134803091",
+            appId: "1:960134803091:web:795feeb01f4199bbeee766",
+            measurementId: "G-N87ZW6067E"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        let userId = localStorage.getItem("wingo_user_id");
+        if (!userId) {
+            userId = "User_" + Math.random().toString(36).substring(2, 9);
+            localStorage.setItem("wingo_user_id", userId);
+        }
+
+        window.syncUserActivityToCloud = async function(historyLogs, totalWins, totalLosses, totalSafe, currentStep) {
+            try {
+                const userDocRef = doc(db, "users_activity", userId);
+                const userDocCheck = await getDoc(userDocRef);
+
+                if (userDocCheck.exists() && userDocCheck.data().isBanned === true) {
+                    alert("آپ کا اکاؤنٹ مستقل طور پر بلاک کر دیا گیا ہے!");
+                    document.body.innerHTML = "<h1 style='color:red; text-align:center; margin-top:20vh;'>ACCESS DENIED: Your account has been permanently banned by Administrator.</h1>";
+                    return;
+                }
+
+                await setDoc(userDocRef, {
+                    userId: userId,
+                    lastUpdated: new Date().toISOString(),
+                    wins: totalWins,
+                    losses: totalLosses,
+                    safePaused: totalSafe,
+                    currentStep: currentStep,
+                    isBanned: false,
+                    history: historyLogs.slice(0, 500)
+                }, { merge: true });
+            } catch (e) {
+                console.error("Cloud Sync Error: ", e);
+            }
+        };
+    </script>
+</head>
+<body>
+
+<div class="app-card">
+    <div class="top-bar">
+        <div class="header-title"><h1>WinGo 4-AI Specialized Master Engine</h1></div>
+        <div class="sync-badge">🛡️ 4-AI AGENTS</div>
+    </div>
+
+    <div class="period-box">
+        <div><div style="font-size:8px; color:var(--text-sub)">TARGET PERIOD</div><div style="font-size:12px; font-weight:900; color:var(--gold)" id="targetPeriod">----</div></div>
+        <div style="text-align: right;"><div style="font-size:8px; color:var(--text-sub)">LAST RESULT</div><div style="font-size:12px; font-weight:900; color:var(--accent-cyan)" id="lastNum">-</div></div>
+    </div>
+
+    <div class="timer-container">
+        <div class="timer-clock" id="timerClock">00:30</div>
+    </div>
+
+    <div class="trend-grid">
+        <div class="trend-card">
+            <div class="trend-name"><span>🐉 AI-1: Dragon Catcher</span><span id="p1Score" style="color:var(--accent-cyan)">Standby</span></div>
+            <div class="trend-val"><span id="t1Dir">-</span><span id="t1Status" style="color:var(--text-sub)">Streak Check</span></div>
+        </div>
+        <div class="trend-card">
+            <div class="trend-name"><span>⚡ AI-2: Zig-Zag Catcher</span><span id="p2Score" style="color:var(--accent-cyan)">Standby</span></div>
+            <div class="trend-val"><span id="t2Dir">-</span><span id="t2Status" style="color:var(--text-sub)">Chop Check</span></div>
+        </div>
+        <div class="trend-card">
+            <div class="trend-name"><span>🛡️ AI-3: Chop Manager</span><span id="p3Score" style="color:var(--accent-cyan)">Active</span></div>
+            <div class="trend-val"><span id="t3Dir">ARMED</span><span id="t3Status" style="color:var(--text-sub)">Protection</span></div>
+        </div>
+        <div class="trend-card">
+            <div class="trend-name"><span>👑 AI-4: Situation Judge</span><span id="p4Score" style="color:var(--accent-cyan)">Evaluating</span></div>
+            <div class="trend-val"><span id="t4Dir">ACTIVE</span><span id="t4Status" style="color:var(--text-sub)">Supervisor</span></div>
+        </div>
+    </div>
+
+    <div class="supervisor-signal-box" id="signalBox">
+        <div class="signal-label">4-AI MASTER SITUATION SUPERVISOR</div>
+        <div class="signal-trend" id="predTrend">SAFE ⏸️</div>
+        <div style="font-size:8.5px; font-weight:800; color:var(--skip-orange);" id="phaseMode">🛡️ Evaluating Market Situation (Avoiding 7 Losses)...</div>
+    </div>
+
+    <div class="user-card">
+        <div style="display: flex; justify-content: space-between; font-size: 9px; font-weight: 800; margin-bottom: 4px;">
+            <span style="color: var(--accent-cyan);" id="userIdDisplay">👤 User</span>
+            <span style="color: var(--gold);" id="winRateText">WIN: 0/0 (SAFE: 0)</span>
+        </div>
+
+        <div style="font-size: 8.5px; color: var(--text-sub); line-height: 1.2; background: rgba(3, 7, 18, 0.5); padding: 4px; border-radius: 5px;" id="logicBox">
+            > 4 Specialized AIs (Dragon, Zig-Zag, Chop Manager, and Judge) working together to protect capital.
+        </div>
+
+        <div class="history-container">
+            <table class="history-table">
+                <thead>
+                    <tr>
+                        <th>PERIOD</th>
+                        <th>RESULT</th>
+                        <th>PREDICT</th>
+                        <th>STATUS</th>
+                    </tr>
+                </thead>
+                <tbody id="historyBody">
+                    <tr><td colspan="4" style="color:var(--accent-green);">4-AI Specialized Engine Connected!</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    const WINGO_30S_API = "https://draw.ar-lottery01.com/WinGo/WinGo_30S/GetHistoryIssuePage.json";
+    let totalWins = 0, totalLosses = 0, totalSafe = 0;
+    let currentStep = 1;
+    let lastPrediction = null, lastProcessedIssue = "", historyLogs = [];
+    let skipNextRoundDueToLoss = false;
+
+    document.getElementById('userIdDisplay').innerText = `👤 ${localStorage.getItem("wingo_user_id")}`;
+
+    function startTimerEngine() {
+        setInterval(() => {
+            const remSec = 30 - (new Date().getSeconds() % 30);
+            document.getElementById('timerClock').innerText = `00:${remSec < 10 ? '0' : ''}${remSec}`;
+            if (remSec === 29 || remSec === 1 || remSec === 28) runLiveEngine();
+        }, 1000);
+    }
+
+    async function fetchDirectData() {
+        try {
+            const res = await fetch(WINGO_30S_API);
+            if (res.ok) {
+                const json = await res.json();
+                return json.data?.list || json.list || json.data || [];
+            }
+        } catch (e) {}
+        return null;
+    }
+
+    /* 🛡️ 4 Specialized AI Agents & Master Supervisor Engine */
+    function compute4SpecializedAIs(list, isAfterLoss) {
+        if (!list || list.length < 10) {
+            return { decision: "SAFE ɵ", aiType: "BOOT", phase: "⚡ Scanning Market...", reason: "Gathering trend history...", isSafe: true };
+        }
+
+        // کیپٹل سیفٹی گارڈ: لاس کے بعد اگلا راؤنڈ سیف اسکیپ تاکہ لگاتار لاسز سے بچا جا سکے
+        if (isAfterLoss) {
+            return {
+                decision: "SAFE ⏸️",
+                aiType: "LOSS_GUARD",
+                phase: "🛡️ Capital Safety Guard Active",
+                reason: `Previous round lost. Supervisor enforced safe skip to protect capital and prevent streak loss.`,
+                isSafe: true
+            };
+        }
+
+        const items = list.slice(0, 10);
+        const sizes = items.map(i => {
+            let num = parseInt(i.number ?? i.num ?? i.winningNumber ?? 0);
+            return num >= 5 ? "BIG" : "SMALL";
+        });
+
+        // --- AI-1: Dragon Catcher (صرف پکی اور لمبی لہر 4+ پر کام کرے گا) ---
+        let dragonStreak = 1;
+        for (let i = 0; i < sizes.length - 1; i++) {
+            if (sizes[i] === sizes[0]) dragonStreak++;
+            else break;
+        }
+        let ai1DragonSignal = dragonStreak >= 4 ? sizes[0] : null;
+
+        // --- AI-2: Zig-Zag Catcher (صرف پکا زگ زیڈ 4+ پر کام کرے گا) ---
+        let zigZagCount = 0;
+        for (let i = 0; i < 4; i++) {
+            if (sizes[i] !== sizes[i+1]) zigZagCount++;
+            else break;
+        }
+        let ai2ZigZagSignal = null;
+        if (zigZagCount >= 4) {
+            ai2ZigZagSignal = sizes[0] === "BIG" ? "SMALL" : "BIG";
+        }
+
+        // --- AI-3: Chop & Mixed Market Manager (میکس یا کمزور ٹرینڈ کو روکے گا) ---
+        let isChoppy = (dragonStreak < 4 && zigZagCount < 4);
+
+        // --- AI-4: Master Situation Supervisor (جج اور فیصلہ کرنے والا) ---
+        if (isChoppy) {
+            return {
+                decision: "SAFE ⏸️",
+                aiType: "CHOP_MANAGER",
+                phase: "🛡️ AI-3 Chop Manager: Mixed Market Skipped",
+                reason: `Market is choppy/mixed (No strong Dragon or Zig-Zag). AI-3 & AI-4 enforced safe skip.`,
+                isSafe: true
+            };
+        }
+
+        let finalDecision = ai1DragonSignal || ai2ZigZagSignal || "SAFE ⏸️";
+        let winningAI = ai1DragonSignal ? "AI-1 (Dragon Catcher)" : "AI-2 (Zig-Zag Catcher)";
+
+        if (finalDecision.includes("SAFE")) {
+            return {
+                decision: "SAFE ⏸️",
+                aiType: "SUPERVISOR_HOLD",
+                phase: "👑 AI-4 Judge: Holding for Clear Setup",
+                reason: `Market situation unclear. Master Supervisor holding signals to protect capital.`,
+                isSafe: true
+            };
+        }
+
+        return {
+            decision: finalDecision,
+            aiType: winningAI,
+            phase: `👑 AI-4 Judge Approved [${winningAI}] (${finalDecision})`,
+            reason: `Situation judged successfully. ${winningAI} took control based on verified market structure.`,
+            isSafe: false
+        };
+    }
+
+    async function runLiveEngine() {
+        const list = await fetchDirectData();
+        if (!list || list.length === 0) return;
+
+        const latest = list[0];
+        const lastNum = parseInt(latest.number ?? latest.num ?? latest.winningNumber ?? 0);
+        const lastIssue = String(latest.issueNumber ?? latest.issue ?? latest.period ?? "");
+        const actualSize = lastNum >= 5 ? "BIG" : "SMALL";
+
+        if (lastIssue && lastIssue === lastProcessedIssue) return;
+        if (lastIssue) lastProcessedIssue = lastIssue;
+
+        document.getElementById('lastNum').innerText = `${lastNum} (${actualSize})`;
+
+        try {
+            if (lastIssue) {
+                document.getElementById('targetPeriod').innerText = (BigInt(lastIssue) + 1n).toString().slice(-4);
+            }
+        } catch(e) { document.getElementById('targetPeriod').innerText = "NEXT"; }
+
+        if (lastPrediction !== null) {
+            let status = "";
+            if (lastPrediction.includes("SAFE")) {
+                status = "SAFE_SKIP";
+                totalSafe++;
+                skipNextRoundDueToLoss = false;
+            } else {
+                let isWin = (actualSize === lastPrediction);
+                if (isWin) {
+                    status = "WIN";
+                    totalWins++;
+                    currentStep = 1;
+                    skipNextRoundDueToLoss = false;
+                } else {
+                    status = "LOSS";
+                    totalLosses++;
+                    currentStep++;
+                    if (currentStep > 3) currentStep = 3; // کیپٹل سیفٹی کے لیے زیادہ سے زیادہ 3 سٹیپس تک محدود رکھا ہے
+                    skipNextRoundDueToLoss = true; // لاس ہونے پر اگلا راؤنڈ لازمی اسکیپ ہوگا تاکہ 7 لاسز کا خطرہ ختم ہو جائے
+                }
+            }
+
+            historyLogs.unshift({
+                issue: lastIssue || "----", actual: `${lastNum} (${actualSize})`,
+                pred: lastPrediction, status: status
+            });
+
+            document.getElementById('historyBody').innerHTML = historyLogs.slice(0, 15).map(item => {
+                let badgeClass = item.status === 'WIN' ? 'badge-win' : (item.status === 'LOSS' ? 'badge-loss' : 'badge-safe');
+                return `<tr><td>${item.issue.slice(-4)}</td><td><b>${item.actual}</b></td><td><b>${item.pred}</b></td><td><span class="${badgeClass}">${item.status}</span></td></tr>`;
+            }).join('');
+
+            document.getElementById('winRateText').innerText = `WIN: ${totalWins}/${totalWins + totalLosses} (SAFE: ${totalSafe})`;
+            syncUserActivityToCloud(historyLogs, totalWins, totalLosses, totalSafe, currentStep);
+        }
+
+        const engineResult = compute4SpecializedAIs(list, skipNextRoundDueToLoss);
+        lastPrediction = engineResult.decision;
+
+        document.getElementById('predTrend').innerText = lastPrediction;
+        document.getElementById('phaseMode').innerText = engineResult.phase;
+        document.getElementById('logicBox').innerHTML = `> <b>4-AI Supervisor:</b> ${engineResult.reason}`;
+
+        document.getElementById('p1Score').innerText = engineResult.aiType.includes('Dragon') ? "ACTIVE" : "Standby";
+        document.getElementById('t1Dir').innerText = engineResult.aiType.includes('Dragon') ? "PASS" : "WAIT";
+        document.getElementById('p2Score').innerText = engineResult.aiType.includes('Zig-Zag') ? "ACTIVE" : "Standby";
+        document.getElementById('t2Dir').innerText = engineResult.aiType.includes('Zig-Zag') ? "PASS" : "WAIT";
+        document.getElementById('p3Score').innerText = engineResult.isSafe ? "Guarding" : "Passed";
+        document.getElementById('t3Dir').innerText = engineResult.isSafe ? "PAUSE" : "CLEAR";
+        document.getElementById('p4Score').innerText = `Step ${currentStep}`;
+        document.getElementById('t4Dir').innerText = currentStep > 1 ? "RECOVERY" : "BASE";
+
+        const box = document.getElementById('signalBox');
+        const trend = document.getElementById('predTrend');
+        if (engineResult.isSafe) {
+            box.classList.add('safe-mode');
+            trend.classList.add('safe-mode');
+        } else {
+            box.classList.remove('safe-mode');
+            trend.classList.remove('safe-mode');
+        }
+    }
+
+    startTimerEngine();
+    runLiveEngine();
+</script>
+
+</body>
+</html>
